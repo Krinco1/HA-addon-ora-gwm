@@ -5,7 +5,7 @@ import logging
 import requests
 import paho.mqtt.client as mqtt
 
-logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
+logging.basicConfig(level=logging.DEBUG, format="%(asctime)s [%(levelname)s] %(message)s")
 logger = logging.getLogger("ora_gwm")
 
 H5_BASE = "https://eu-h5-gateway.gwmcloud.com/app-api/api/v1.0"
@@ -45,6 +45,9 @@ def login(config):
     }
 
     logger.info("Login bei GWM...")
+    logger.debug(f"Login-Payload: {json.dumps(payload)}")
+    logger.debug(f"Login-Headers: {headers}")
+
     r = requests.post(f"{APP_BASE}/user/login", json=payload, headers=headers)
     r.raise_for_status()
     data = r.json()
