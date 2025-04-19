@@ -8,8 +8,10 @@ import paho.mqtt.client as mqtt
 logging.basicConfig(level=logging.DEBUG, format="%(asctime)s [%(levelname)s] %(message)s")
 logger = logging.getLogger("ora_gwm")
 
-H5_BASE = "https://eu-h5-gateway.gwmcloud.com/app-api/api/v1.0"
 APP_BASE = "https://eu-app-gateway.gwmcloud.com/app-api/api/v1.0"
+
+CERT = ("/app/certs/gwm_general.cer", "/app/certs/gwm_general.key")
+VERIFY = "/app/certs/gwm_root.pem"
 
 def get_config():
     with open("/data/options.json", "r") as f:
@@ -48,7 +50,7 @@ def login(config):
     logger.debug(f"Login-Payload: {json.dumps(payload)}")
     logger.debug(f"Login-Headers: {headers}")
 
-    r = requests.post(f"{APP_BASE}/user/login", json=payload, headers=headers)
+    r = requests.post(f"{APP_BASE}/user/login", json=payload, headers=headers, cert=CERT, verify=VERIFY)
 
     if r.status_code == 400:
         try:
@@ -66,61 +68,15 @@ def login(config):
     logger.info("Login erfolgreich.")
     return data["data"]["accessToken"]
 
-def get_vehicle_list(access_token):
-    headers = {
-        "accessToken": access_token,
-        "brand": "3",
-        "terminal": "GW_APP_ORA",
-        "language": "en"
-    }
-
-    r = requests.get(f"{APP_BASE}/vehicle/getVehicleList", headers=headers)
-    r.raise_for_status()
-    data = r.json()
-
-    if data["code"] != 0 or not data.get("data"):
-        raise Exception("Keine Fahrzeugdaten erhalten")
-
-    return data["data"]
-
-def get_status(access_token, vin):
-    headers = {
-        "accessToken": access_token,
-        "brand": "3",
-        "terminal": "GW_APP_ORA",
-        "language": "en"
-    }
-
-    r = requests.get(f"{APP_BASE}/vehicle/status?vin={vin}", headers=headers)
-    r.raise_for_status()
-    data = r.json()
-
-    if data["code"] != 0:
-        raise Exception("Statusdaten konnten nicht geladen werden")
-
-    return data["data"]
-
 def main():
     config = get_config()
-    polling_interval = config.get("poll_interval", 300)
-
     while True:
         try:
             token = login(config)
-            vehicles = get_vehicle_list(token)
-
-            for vehicle in vehicles:
-                vin = vehicle["vin"]
-                mqtt_publish(config, f"{config['mqtt_topic_prefix']}/{vin}/info", vehicle)
-
-                status = get_status(token, vin)
-                mqtt_publish(config, f"{config['mqtt_topic_prefix']}/{vin}/status", status)
-
-            logger.info("Alle Fahrzeugdaten erfolgreich übertragen.")
+            logger.info(f"Zugriffstoken erhalten: {token[:10]}...")
         except Exception as e:
             logger.error(f"Fehler: {e}")
-
-        time.sleep(polling_interval)
+        time.sleep(300)
 
 if __name__ == "__main__":
     main()
