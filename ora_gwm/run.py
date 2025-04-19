@@ -49,6 +49,14 @@ def login(config):
     logger.debug(f"Login-Headers: {headers}")
 
     r = requests.post(f"{APP_BASE}/user/login", json=payload, headers=headers)
+
+    if r.status_code == 400:
+        try:
+            logger.error(f"Antwortinhalt (400): {r.json()}")
+        except Exception:
+            logger.error(f"Antwortinhalt (roh): {r.text}")
+        r.raise_for_status()
+
     r.raise_for_status()
     data = r.json()
 
