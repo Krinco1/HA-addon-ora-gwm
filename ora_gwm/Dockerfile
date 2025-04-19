@@ -2,12 +2,12 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
-COPY run.sh ./run.sh
 COPY run.py ./run.py
 COPY requirements.txt ./requirements.txt
 
-RUN apt-get update && apt-get install -y curl \
- && chmod +x ./run.sh \
- && pip install --no-cache-dir -r requirements.txt
+RUN apt-get update && apt-get install -y curl && \\
+    echo '#!/bin/sh\\necho "[ora_gwm] Starte Add-on..."; exec python3 /app/run.py' > /run.sh && \\
+    chmod +x /run.sh && \\
+    pip install --no-cache-dir -r requirements.txt
 
-CMD ["./run.sh"]
+CMD ["/run.sh"]
